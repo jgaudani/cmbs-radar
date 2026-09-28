@@ -1,0 +1,13 @@
+{
+  "version": "ust10y-approx-1",
+  "description": "Approximate quarterly averages of the 10-year Treasury yield, typed from memory. Replace with FRED DGS10 quarterly averages before relying on results. Quarters not listed use the assumptions' base_rate.",
+  "quarterly": {
+    "2019Q1": 0.0265, "2019Q2": 0.0233, "2019Q3": 0.0180, "2019Q4": 0.0179,
+    "2020Q1": 0.0138, "2020Q2": 0.0069, "2020Q3": 0.0065, "2020Q4": 0.0086,
+    "2021Q1": 0.0132, "2021Q2": 0.0159, "2021Q3": 0.0132, "2021Q4": 0.0153,
+    "2022Q1": 0.0194, "2022Q2": 0.0293, "2022Q3": 0.0310, "2022Q4": 0.0383,
+    "2023Q1": 0.0365, "2023Q2": 0.0360, "2023Q3": 0.0415, "2023Q4": 0.0444,
+    "2024Q1": 0.0416, "2024Q2": 0.0444, "2024Q3": 0.0395, "2024Q4": 0.0428,
+    "2025Q1": 0.0445, "2025Q2": 0.0436
+  }
+}
