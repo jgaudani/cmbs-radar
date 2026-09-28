@@ -71,6 +71,7 @@ Filters (all optional, combined with AND):
 | min_X / max_X | ranges; X is months (to refi), gap ($), gap_pct, dscr, dy (debt yield), balance (whole loan), occupancy. Ratios are fractions (dy 0.08 = 8%) |
 | refi_from, refi_to | refi date range, `YYYY-MM-DD` or `YYYY-MM` (to = end of month) |
 | flag | comma-separated flags, all required (list in /api/meta) |
+| changed | `class`: class changed since the loan's previous report; `any`: any class change, new flag or threshold crossing |
 | q | substring of property name, city or trust |
 | sort, dir | gap, gap_pct, balance, maturity, dscr, dy, occupancy, name, class; dir asc/desc (default per key). Missing values sort last |
 

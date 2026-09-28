@@ -43,7 +43,7 @@ def test_filter_and_sort():
     assert f.apply(rows)[0].s.asset_number == "a"
     assert [r.s.asset_number for r in Filter.parse({"q": "c tower"}).apply(rows)] == ["c"]
     for bad in [{"max_months": "x"}, {"min_gap_pct": "big"}, {"limit": "0"}, {"limit": "99999"}, {"sort": "color"},
-                {"dir": "up"}, {"refi_to": "soon"}, {"offset": "-1"}]:
+                {"dir": "up"}, {"changed": "yes"}, {"refi_to": "soon"}, {"offset": "-1"}]:
         with pytest.raises(BadParam):
             Filter.parse(bad)
 
@@ -62,6 +62,9 @@ def test_filter_ranges_dates_ids_and_paging():
     assert ids({"refi_from": "2026-12", "refi_to": "2027-02"}) == ["b", "n"]
     assert ids({"refi_to": "2026-12-10"}) == []
     assert ids({"ids": "1/c,1/b,9/zz"}) == ["b", "c"]
+    rows[1].prev_class, rows[1].changes = e.CLEAN_REFI, ["class clean_refi -> gap_refi"]
+    rows[2].prev_class, rows[2].changes = e.CLEAN_REFI, ["new flag interest_only"]
+    assert (ids({"changed": "class"}), ids({"changed": "any"})) == (["b"], ["b", "c"])
     # Sorting: natural direction per key, dir overrides, missing values last.
     assert ids({"sort": "dscr"}) == ["a", "b", "c", "n"]
     assert ids({"sort": "dscr", "dir": "desc"}) == ["c", "b", "a", "n"]

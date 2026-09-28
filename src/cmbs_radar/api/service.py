@@ -286,6 +286,7 @@ class Filter:
     refi_from: date | None = None
     refi_to: date | None = None
     flags: list[str] = field(default_factory=list)  # all must be present
+    changed: str = ""  # "class": class changed since the last report; "any": any change
     query: str = ""  # substring of name, city or trust
     sort: str = "gap"
     desc: bool = True
@@ -317,6 +318,10 @@ class Filter:
             f.refi_from = _date(v, end=False)
         if v := q.get("refi_to"):
             f.refi_to = _date(v, end=True)
+        if v := q.get("changed"):
+            if v not in ("class", "any"):
+                raise BadParam(f"bad changed: {v} (class or any)")
+            f.changed = v
         if v := q.get("dir"):
             if v not in ("asc", "desc"):
                 raise BadParam(f"bad dir: {v} (asc or desc)")
@@ -355,6 +360,10 @@ class Filter:
             if d is None or (self.refi_from and d < self.refi_from) or (self.refi_to and d > self.refi_to):
                 return False
         if any(fl not in s.flags for fl in self.flags):
+            return False
+        if self.changed == "any" and not r.changes:
+            return False
+        if self.changed == "class" and not (r.prev_class and r.prev_class != s.cls):
             return False
         if self.query and self.query not in f"{r.loc.name} {r.loc.city} {r.trust_name}".lower():
             return False
