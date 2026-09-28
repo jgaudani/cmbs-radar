@@ -2,27 +2,41 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import time
 from datetime import datetime, timezone
 from importlib import resources
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException
 
 from .brief import PROMPT_VERSION, Generator, MissingCredentialsError, RefusedError
 from .service import BadParam, Filter, NotFound, Service, map_points, opportunity, summarize
 
 log = logging.getLogger("api")
 
+CSV_COLUMNS = ["id", "name", "city", "state", "metro", "property_type_label", "class", "team", "refi_date", "months_to_refi",
+               "whole_balance", "balance", "max_new_loan", "refi_gap_whole", "refi_gap_pct", "dscr", "debt_yield", "occupancy",
+               "notes", "flags"]
+
 
 class _UIFiles(StaticFiles):
     """index.html must be revalidated so a deploy is picked up at once; the
-    hashed assets it references are immutable and cache forever."""
+    hashed assets it references are immutable and cache forever. The UI
+    routes in the browser, so unknown page paths (/loans, /watchlist...) get
+    index.html."""
 
     async def get_response(self, path: str, scope):
-        resp = await super().get_response(path, scope)
+        try:
+            resp = await super().get_response(path, scope)
+        except HTTPException as e:
+            if e.status_code != 404 or path.startswith(("api/", "assets/")) or "." in path.rsplit("/", 1)[-1]:
+                raise
+            resp = await super().get_response("index.html", scope)
         if path.startswith("assets/"):
             resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         else:
@@ -67,7 +81,22 @@ def create_app(svc: Service, briefer: Generator | None) -> FastAPI:
     def opportunities(request: Request):
         f = Filter.parse(dict(request.query_params))
         rows = f.apply(svc.snap.rows)
-        return {"total": len(rows), "run_id": svc.snap.run_id, "opportunities": [opportunity(r) for r in rows[:f.limit]]}
+        return {"total": len(rows), "offset": f.offset, "run_id": svc.snap.run_id,
+                "opportunities": [opportunity(r) for r in f.page(rows)]}
+
+    @app.get("/api/opportunities.csv")
+    def opportunities_csv(request: Request):
+        """Every loan matching the filters (limit and offset ignored), for Excel."""
+        rows = Filter.parse(dict(request.query_params)).apply(svc.snap.rows)
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(CSV_COLUMNS)
+        for r in rows:
+            o = opportunity(r)
+            w.writerow([";".join(o[c]) if c == "flags" else o.get(c, "") for c in CSV_COLUMNS])
+        name = f"cmbs-radar-run{svc.snap.run_id}.csv"
+        return Response(out.getvalue(), media_type="text/csv",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.get("/api/map")
     def map_(request: Request):

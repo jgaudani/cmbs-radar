@@ -1,7 +1,7 @@
 """The api's data layer: an in-memory snapshot of the latest scoring run,
 filters, summaries, loan detail, rate scenarios and the brief cache.
 
-JSON field names are the UI's contract (web/app.js); keep them stable.
+JSON field names are the UI's contract (frontend/src/types.ts); keep them stable.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from psycopg_pool import ConnectionPool
 
@@ -235,18 +235,61 @@ def opportunity(r: Row) -> dict:
     return o
 
 
+# Range filters: min_<key> / max_<key> query params. Loans without the value
+# are excluded once either bound is set.
+RANGES = {
+    "months": lambda r: r.s.months_to_refi,
+    "gap": lambda r: r.s.refi_gap_whole,
+    "gap_pct": lambda r: r.s.refi_gap_pct,
+    "dscr": lambda r: r.s.dscr,
+    "dy": lambda r: r.s.debt_yield,
+    "balance": lambda r: r.s.whole_balance,
+    "occupancy": lambda r: r.s.occupancy,
+}
+
+CLASS_ORDER = {c: i for i, c in enumerate([engine.DISTRESSED, engine.GAP_REFI, engine.CLEAN_REFI, engine.WATCH])}
+
+# Sort keys and their natural direction (True = descending). Loans without
+# the value sort last either way.
+SORTS = {
+    "gap": (lambda r: r.s.refi_gap_whole, True),
+    "gap_pct": (lambda r: r.s.refi_gap_pct, True),
+    "balance": (lambda r: r.s.whole_balance, True),
+    "maturity": (lambda r: r.s.refi_date, False),
+    "dscr": (lambda r: r.s.dscr, False),
+    "dy": (lambda r: r.s.debt_yield, False),
+    "occupancy": (lambda r: r.s.occupancy, False),
+    "name": (lambda r: r.loc.name.lower() or None, False),
+    "class": (lambda r: CLASS_ORDER.get(r.s.cls, len(CLASS_ORDER)), False),
+}
+
+
+def _date(v: str, end: bool) -> date:
+    """YYYY-MM-DD, or YYYY-MM meaning the first (or, for an upper bound, last) day of the month."""
+    try:
+        if len(v) == 7:
+            d = date.fromisoformat(v + "-01")
+            return engine.add_months(d, 1) - timedelta(days=1) if end else d
+        return date.fromisoformat(v)
+    except ValueError:
+        raise BadParam(f"bad date: {v} (want YYYY-MM-DD or YYYY-MM)") from None
+
+
 @dataclass(slots=True)
 class Filter:
     classes: list[str] = field(default_factory=list)
     types: list[str] = field(default_factory=list)
-    metro: str = ""
-    state: str = ""
-    min_months: int | None = None
-    max_months: int | None = None
-    min_gap_pct: float | None = None
+    metros: list[str] = field(default_factory=list)
+    states: list[str] = field(default_factory=list)
+    ids: set[str] = field(default_factory=set)  # "trust/asset", e.g. a watchlist
+    ranges: dict[str, tuple[float | None, float | None]] = field(default_factory=dict)
+    refi_from: date | None = None
+    refi_to: date | None = None
     flags: list[str] = field(default_factory=list)  # all must be present
     query: str = ""  # substring of name, city or trust
-    sort: str = "gap"  # gap | gap_pct | maturity | balance
+    sort: str = "gap"
+    desc: bool = True
+    offset: int = 0
     limit: int = 200
 
     @classmethod
@@ -254,25 +297,36 @@ class Filter:
         def split(v: str) -> list[str]:
             return [p.strip() for p in v.split(",") if p.strip()]
 
-        f = cls(classes=split(q.get("class", "")), types=split(q.get("type", "").upper()), metro=q.get("metro", ""),
-                state=q.get("state", "").upper(), flags=split(q.get("flag", "")), query=q.get("q", "").strip().lower(),
-                sort=q.get("sort", "") or "gap")
-        for key in ("min_months", "max_months"):
-            if v := q.get(key):
-                try:
-                    setattr(f, key, int(v))
-                except ValueError:
-                    raise BadParam(f"bad {key}: {v}") from None
-        if v := q.get("min_gap_pct"):
+        def num(key: str, v: str, kind=float):
             try:
-                f.min_gap_pct = float(v)
+                return kind(v)
             except ValueError:
-                raise BadParam(f"bad min_gap_pct: {v}") from None
+                raise BadParam(f"bad {key}: {v}") from None
+
+        sort = q.get("sort", "") or "gap"
+        if sort not in SORTS:
+            raise BadParam(f"bad sort: {sort} (one of {', '.join(SORTS)})")
+        f = cls(classes=split(q.get("class", "")), types=split(q.get("type", "").upper()), metros=split(q.get("metro", "")),
+                states=split(q.get("state", "").upper()), ids=set(split(q.get("ids", ""))), flags=split(q.get("flag", "")),
+                query=q.get("q", "").strip().lower(), sort=sort, desc=SORTS[sort][1])
+        for key in RANGES:
+            lo, hi = q.get(f"min_{key}"), q.get(f"max_{key}")
+            if lo or hi:
+                f.ranges[key] = (num(f"min_{key}", lo) if lo else None, num(f"max_{key}", hi) if hi else None)
+        if v := q.get("refi_from"):
+            f.refi_from = _date(v, end=False)
+        if v := q.get("refi_to"):
+            f.refi_to = _date(v, end=True)
+        if v := q.get("dir"):
+            if v not in ("asc", "desc"):
+                raise BadParam(f"bad dir: {v} (asc or desc)")
+            f.desc = v == "desc"
+        if v := q.get("offset"):
+            f.offset = num("offset", v, int)
+            if f.offset < 0:
+                raise BadParam(f"bad offset: {v}")
         if v := q.get("limit"):
-            try:
-                f.limit = int(v)
-            except ValueError:
-                raise BadParam(f"bad limit: {v}") from None
+            f.limit = num("limit", v, int)
             if not 1 <= f.limit <= 5000:
                 raise BadParam(f"bad limit: {v}")
         return f
@@ -286,16 +340,20 @@ class Filter:
             return False
         if self.types and s.property_type not in self.types:
             return False
-        if self.metro and r.loc.metro != self.metro:
+        if self.metros and r.loc.metro not in self.metros:
             return False
-        if self.state and r.loc.state != self.state:
+        if self.states and r.loc.state not in self.states:
             return False
-        if self.min_months is not None and (s.months_to_refi is None or s.months_to_refi < self.min_months):
+        if self.ids and r.id not in self.ids:
             return False
-        if self.max_months is not None and (s.months_to_refi is None or s.months_to_refi > self.max_months):
-            return False
-        if self.min_gap_pct is not None and (s.refi_gap_pct is None or s.refi_gap_pct < self.min_gap_pct):
-            return False
+        for key, (lo, hi) in self.ranges.items():
+            v = RANGES[key](r)
+            if v is None or (lo is not None and v < lo) or (hi is not None and v > hi):
+                return False
+        if self.refi_from or self.refi_to:
+            d = s.refi_date
+            if d is None or (self.refi_from and d < self.refi_from) or (self.refi_to and d > self.refi_to):
+                return False
         if any(fl not in s.flags for fl in self.flags):
             return False
         if self.query and self.query not in f"{r.loc.name} {r.loc.city} {r.trust_name}".lower():
@@ -304,14 +362,13 @@ class Filter:
 
     def apply(self, rows: list[Row]) -> list[Row]:
         out = [r for r in rows if self.match(r)]
-        keys = {
-            "gap": lambda r: -(r.s.refi_gap_whole or 0.0),
-            "gap_pct": lambda r: -(r.s.refi_gap_pct or 0.0),
-            "balance": lambda r: -(r.s.whole_balance or 0.0),
-            "maturity": lambda r: r.s.refi_date.toordinal() if r.s.refi_date else 10**9,
-        }
-        out.sort(key=keys.get(self.sort, keys["gap"]))  # stable: ties keep snapshot order
-        return out
+        key = SORTS[self.sort][0]
+        present = [r for r in out if key(r) is not None]
+        present.sort(key=key, reverse=self.desc)  # stable: ties keep snapshot order
+        return present + [r for r in out if key(r) is None]
+
+    def page(self, rows: list[Row]) -> list[Row]:
+        return rows[self.offset:self.offset + self.limit]
 
 
 def summarize(rows: list[Row], as_of: date | None) -> dict:
@@ -419,7 +476,8 @@ class Service:
         return {"run_id": snap.run_id, "scored_at": snap.finished_at, "data_as_of": _iso(snap.data_as_of),
                 "assumptions": {"version": a.version, "base_rate": a.base_rate, "horizon_months": a.horizon_months,
                                 "gap_tolerance": a.gap_tolerance, "distress_gap": a.distress_gap},
-                "property_types": types, "metros": [m.to_dict() for m in geo.METROS], "teams": TEAMS, "limits": LIMITS}
+                "property_types": types, "metros": [m.to_dict() for m in geo.METROS], "teams": TEAMS, "limits": LIMITS,
+                "flags": sorted({fl for r in snap.rows if r.s.group_primary for fl in r.s.flags or []})}
 
     def detail(self, trust: str, asset: str) -> dict:
         """Everything about one opportunity. Also exactly the FACTS the brief

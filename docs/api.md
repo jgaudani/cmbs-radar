@@ -46,14 +46,15 @@ npm run build      # into src/cmbs_radar/api/web
   `brief.PROMPT_VERSION` when the prompt changes.
 - Metros are defined by county (EX-102 has no coordinates); map points are
   metro or state centers.
-- JSON field names are the UI's contract (`web/app.js`).
+- JSON field names are the UI's contract (`frontend/src/types.ts`).
 
 ## Endpoints
 | Method | Path | |
 |---|---|---|
-| GET | /api/meta | run, data as-of, assumptions, metros, types, teams |
+| GET | /api/meta | run, data as-of, assumptions, metros, types, teams, flags in use |
 | GET | /api/summary?filters | totals by class, maturity wall (12 quarters) |
-| GET | /api/opportunities?filters | ranked whole loans (sort=gap, gap_pct, maturity, balance) |
+| GET | /api/opportunities?filters | ranked whole loans, paged (offset, limit ≤ 5000) |
+| GET | /api/opportunities.csv?filters | every matching loan as CSV |
 | GET | /api/map?filters | totals by metro / state |
 | GET | /api/opportunities/{trust}/{asset} | detail: sizing, reasons, collateral, history, other notes |
 | POST | /api/opportunities/{trust}/{asset}/brief[?refresh=1] | Claude brief (cached) |
@@ -61,5 +62,16 @@ npm run build      # into src/cmbs_radar/api/web
 | GET | /api/backtest | latest backtest report |
 | GET | /api/docs | OpenAPI UI |
 
-Filters: class, type, metro, state, min_months, max_months, min_gap_pct,
-flag, q, limit.
+Filters (all optional, combined with AND):
+
+| Param | Meaning |
+|---|---|
+| class, type, metro, state | comma-separated lists (any of) |
+| ids | comma-separated `trust/asset` ids, e.g. a watchlist |
+| min_X / max_X | ranges; X is months (to refi), gap ($), gap_pct, dscr, dy (debt yield), balance (whole loan), occupancy. Ratios are fractions (dy 0.08 = 8%) |
+| refi_from, refi_to | refi date range, `YYYY-MM-DD` or `YYYY-MM` (to = end of month) |
+| flag | comma-separated flags, all required (list in /api/meta) |
+| q | substring of property name, city or trust |
+| sort, dir | gap, gap_pct, balance, maturity, dscr, dy, occupancy, name, class; dir asc/desc (default per key). Missing values sort last |
+
+A loan missing a value is excluded once a range on that value is set.

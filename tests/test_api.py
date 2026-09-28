@@ -39,12 +39,68 @@ def test_filter_and_sort():
             row("e", e.GAP_REFI, "OF", "la", 12, 70e6, 10e6), row("f", e.GAP_REFI, "OF", "nyc", 30, 70e6, 10e6)]
     f = Filter.parse({"metro": "nyc", "type": "of", "max_months": "18", "class": "gap_refi,distressed"})
     assert [r.s.asset_number for r in f.apply(rows)] == ["a", "b"]  # the demo query
-    f.sort = "maturity"
+    f = Filter.parse({"metro": "nyc", "type": "of", "max_months": "18", "class": "gap_refi,distressed", "sort": "maturity"})
     assert f.apply(rows)[0].s.asset_number == "a"
     assert [r.s.asset_number for r in Filter.parse({"q": "c tower"}).apply(rows)] == ["c"]
-    for bad in [{"max_months": "x"}, {"min_gap_pct": "big"}, {"limit": "0"}, {"limit": "99999"}]:
+    for bad in [{"max_months": "x"}, {"min_gap_pct": "big"}, {"limit": "0"}, {"limit": "99999"}, {"sort": "color"},
+                {"dir": "up"}, {"refi_to": "soon"}, {"offset": "-1"}]:
         with pytest.raises(BadParam):
             Filter.parse(bad)
+
+
+def test_filter_ranges_dates_ids_and_paging():
+    rows = [row("a", e.DISTRESSED, "OF", "nyc", 12, 900e6, 450e6), row("b", e.GAP_REFI, "RT", "la", 3, 100e6, 20e6),
+            row("c", e.CLEAN_REFI, "OF", "nyc", 20, 50e6, -10e6), row("n", e.GAP_REFI, "OF", "nyc", 5, 60e6, 6e6)]
+    for r, dscr, dy in zip(rows, [1.1, 1.6, 2.0, None], [0.06, 0.09, 0.12, None]):
+        r.s.dscr, r.s.debt_yield = dscr, dy
+    ids = lambda q: [r.s.asset_number for r in Filter.parse(q).apply(rows)]
+    assert ids({"max_dscr": "1.5"}) == ["a"]  # "n" has no DSCR: excluded once a DSCR bound is set
+    assert ids({"min_dy": "0.08", "max_dy": "0.1"}) == ["b"]
+    assert ids({"min_balance": "60e6", "max_gap": "30e6"}) == ["b", "n"]
+    assert ids({"metro": "nyc,la", "type": "OF,RT", "min_gap_pct": "0.1"}) == ["a", "b", "n"]
+    # Refi dates are 2026-09-11 + months; a YYYY-MM upper bound covers the whole month.
+    assert ids({"refi_from": "2026-12", "refi_to": "2027-02"}) == ["b", "n"]
+    assert ids({"refi_to": "2026-12-10"}) == []
+    assert ids({"ids": "1/c,1/b,9/zz"}) == ["b", "c"]
+    # Sorting: natural direction per key, dir overrides, missing values last.
+    assert ids({"sort": "dscr"}) == ["a", "b", "c", "n"]
+    assert ids({"sort": "dscr", "dir": "desc"}) == ["c", "b", "a", "n"]
+    assert ids({"sort": "class"}) == ["a", "b", "n", "c"]
+    assert ids({"sort": "maturity"}) == ["b", "n", "a", "c"]
+    f = Filter.parse({"sort": "maturity", "offset": "1", "limit": "2"})
+    assert [r.s.asset_number for r in f.page(f.apply(rows))] == ["n", "a"]
+
+
+def test_http_csv_and_ui_routes(tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from cmbs_radar.api.app import _UIFiles, create_app
+
+    rows = [row("a", e.DISTRESSED, "OF", "nyc", 12, 900e6, 450e6), row("b", e.GAP_REFI, "OF", "nyc", 3, 100e6, 20e6)]
+    rows[0].loc.name = 'The "A", Tower'
+    client = TestClient(create_app(SimpleNamespace(snap=SimpleNamespace(rows=rows, run_id=6)), None))
+    page = client.get("/api/opportunities?sort=maturity&limit=1&offset=1").json()
+    assert (page["total"], page["offset"], [o["id"] for o in page["opportunities"]]) == (2, 1, ["1/a"])
+    resp = client.get("/api/opportunities.csv?class=distressed")
+    assert resp.headers["content-type"].startswith("text/csv") and "run6" in resp.headers["content-disposition"]
+    lines = resp.text.splitlines()
+    assert lines[0].startswith("id,name,city") and len(lines) == 2
+    assert lines[1].startswith('1/a,"The ""A"", Tower",New York') and lines[1].endswith(",split_loan")
+    assert client.get("/api/opportunities?sort=nope").status_code == 400
+
+    # The UI routes in the browser: page paths get index.html; files and api paths still 404.
+    (tmp_path / "index.html").write_text("<div id=root></div>")
+    ui = FastAPI()
+    ui.mount("/", _UIFiles(directory=str(tmp_path), html=True))
+    c = TestClient(ui)
+    for path in ["/", "/loans", "/loans/1708131/2", "/watchlist"]:
+        r = c.get(path)
+        assert r.status_code == 200 and "root" in r.text and r.headers["cache-control"] == "no-cache", path
+    for path in ["/assets/app.js", "/favicon.ico", "/api/nope"]:
+        assert c.get(path).status_code == 404, path
 
 
 def test_summarize_wall():
