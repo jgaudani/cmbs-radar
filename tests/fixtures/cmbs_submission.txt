@@ -1,0 +1,135 @@
+<SEC-DOCUMENT>0001000001-26-000010.txt : 20260814
+<SEC-HEADER>0001000001-26-000010.hdr.sgml : 20260814
+ACCESSION NUMBER:		0001000001-26-000010
+CONFORMED SUBMISSION TYPE:	ABS-EE
+PUBLIC DOCUMENT COUNT:		3
+CONFORMED PERIOD OF REPORT:	20260731
+<DEPOSITOR-CIK>0001000009
+<SPONSOR-CIK>0001000007
+FILED AS OF DATE:		20260814
+ABS ASSET CLASS:             	Commercial mortgages
+
+FILER:
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Example Commercial Mortgage Securities Inc.
+		CENTRAL INDEX KEY:			0001000009
+		STANDARD INDUSTRIAL CLASSIFICATION:	ASSET-BACKED SECURITIES [6189]
+
+	FILING VALUES:
+		FORM TYPE:		ABS-EE
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	EXAMPLE OLD DEPOSITOR CORP
+
+FILER:
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			EXAMPLE COMMERCIAL MORTGAGE TRUST 2017-C1
+		CENTRAL INDEX KEY:			0001000001
+		STANDARD INDUSTRIAL CLASSIFICATION:	ASSET-BACKED SECURITIES [6189]
+
+	FILING VALUES:
+		FORM TYPE:		ABS-EE
+
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>ABS-EE
+<SEQUENCE>1
+<FILENAME>form_absee.htm
+<TEXT>
+<html><body>Form ABS-EE cover</body></html>
+</TEXT>
+</DOCUMENT>
+<DOCUMENT>
+<TYPE>EX-102
+<SEQUENCE>2
+<FILENAME>exh_102.xml
+<DESCRIPTION>ASSET DATA FILE
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?>
+<assetData xmlns="http://www.sec.gov/edgar/document/absee/cmbs/assetdata">
+  <assets>
+    <assetTypeNumber>Prospectus Loan ID</assetTypeNumber>
+    <assetNumber>1</assetNumber>
+    <reportingPeriodBeginningDate>07-01-2026</reportingPeriodBeginningDate>
+    <reportingPeriodEndDate>07-31-2026</reportingPeriodEndDate>
+    <originatorName>Example Bank</originatorName>
+    <originationDate>12-15-2016</originationDate>
+    <originalLoanAmount>75000000.00</originalLoanAmount>
+    <originalTermLoanNumber>120</originalTermLoanNumber>
+    <maturityDate>01-06-2027</maturityDate>
+    <originalInterestRatePercentage>0.04150</originalInterestRatePercentage>
+    <interestOnlyIndicator>true</interestOnlyIndicator>
+    <balloonIndicator>true</balloonIndicator>
+    <reportPeriodEndActualBalanceAmount>75000000.00</reportPeriodEndActualBalanceAmount>
+    <reportPeriodEndScheduledLoanBalanceAmount>75000000.00</reportPeriodEndScheduledLoanBalanceAmount>
+    <reportPeriodInterestRatePercentage>0.04150</reportPeriodInterestRatePercentage>
+    <paymentStatusLoanCode>0</paymentStatusLoanCode>
+    <modifiedIndicator>false</modifiedIndicator>
+    <primaryServicerName>Example Servicing LLC</primaryServicerName>
+    <paidThroughDate>08-06-2026</paidThroughDate>
+    <yieldMaintenanceEndDate>07-06-2026</yieldMaintenanceEndDate>
+    <hyperAmortizingDate>01-06-2027</hyperAmortizingDate>
+    <GroupID>1</GroupID>
+    <someFutureField>abc</someFutureField>
+    <property>
+      <propertyName>One Example Plaza</propertyName>
+      <propertyAddress>1 Example Plaza</propertyAddress>
+      <propertyCity>New York</propertyCity>
+      <propertyState>NY</propertyState>
+      <propertyZip>10017</propertyZip>
+      <propertyTypeCode>OF</propertyTypeCode>
+      <netRentableSquareFeetNumber>410000</netRentableSquareFeetNumber>
+      <yearBuiltNumber>1972</yearBuiltNumber>
+      <valuationSecuritizationAmount>140000000</valuationSecuritizationAmount>
+      <mostRecentPhysicalOccupancyPercentage>0.71</mostRecentPhysicalOccupancyPercentage>
+      <mostRecentNetOperatingIncomeAmount>4100000</mostRecentNetOperatingIncomeAmount>
+      <mostRecentDebtServiceCoverageNetOperatingIncomePercentage>1.30</mostRecentDebtServiceCoverageNetOperatingIncomePercentage>
+      <mostRecentFinancialsStartDate>04-01-2025</mostRecentFinancialsStartDate>
+      <mostRecentFinancialsEndDate>03-31-2026</mostRecentFinancialsEndDate>
+      <mostRecentDebtServiceAmount>3153750</mostRecentDebtServiceAmount>
+      <mostRecentDebtServiceCoverageNetCashFlowpercentage>1.21</mostRecentDebtServiceCoverageNetCashFlowpercentage>
+      <netCashFlowFlowSecuritizationAmount>7900000</netCashFlowFlowSecuritizationAmount>
+      <DefeasedStatusCode>N</DefeasedStatusCode>
+      <propertyStatusCode>1</propertyStatusCode>
+      <secondLargestTenant>Example Capital LP</secondLargestTenant>
+      <squareFeetSecondLargestTenantNumber>52000</squareFeetSecondLargestTenantNumber>
+      <leaseExpirationSecondLargestTenantDate>06-30-2027</leaseExpirationSecondLargestTenantDate>
+      <largestTenant>Example Law LLP</largestTenant>
+      <leaseExpirationLargestTenantDate>not a date</leaseExpirationLargestTenantDate>
+    </property>
+  </assets>
+  <assets>
+    <assetNumber>2</assetNumber>
+    <reportingPeriodEndDate>07-31-2026</reportingPeriodEndDate>
+    <originalLoanAmount>30000000</originalLoanAmount>
+    <maturityDate>11-01-2027</maturityDate>
+    <reportPeriodEndActualBalanceAmount>27500000</reportPeriodEndActualBalanceAmount>
+    <property>
+      <propertyName>Warehouse A</propertyName>
+      <propertyState>NJ</propertyState>
+      <propertyTypeCode>IN</propertyTypeCode>
+    </property>
+    <property>
+      <propertyName>Warehouse B</propertyName>
+      <propertyState>NJ</propertyState>
+      <propertyTypeCode>IN</propertyTypeCode>
+    </property>
+  </assets>
+</assetData>
+</XML>
+</TEXT>
+</DOCUMENT>
+<DOCUMENT>
+<TYPE>EX-103
+<SEQUENCE>3
+<FILENAME>exh_103.xml
+<TEXT>
+<XML>
+<assetRelatedDocument/>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
