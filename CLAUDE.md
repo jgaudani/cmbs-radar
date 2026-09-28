@@ -58,8 +58,9 @@ Rules:
 ## Conventions
 - Python >= 3.12, uv, few dependencies (psycopg, lxml, httpx, FastAPI,
   anthropic). Type hints and dataclasses; stdlib first.
-- Frontend: React + TypeScript (strict), Vite, Vitest. `src/types.ts`
-  mirrors the api's JSON; keep them in step.
+- Frontend: React + TypeScript (strict), Vite, Vitest, React Router,
+  TanStack Table, ECharts. `src/types.ts` mirrors the api's JSON; keep them
+  in step. Page state lives in the URL so views can be shared.
 - Tests for every data quirk and business rule (`tests/`, pytest).
   Postgres integration tests run when `TEST_DATABASE_URL` is set and must
   use their own database (`radar_test`): they drop tables.

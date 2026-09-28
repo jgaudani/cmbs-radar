@@ -5,10 +5,33 @@ Serves the React UI built from `frontend/`.
 
 ## UI (`frontend/`)
 React 19 + TypeScript, built with Vite into `src/cmbs_radar/api/web/`
-(gitignored; the Docker image builds it in a Node stage). One component per
-section: class cards, maturity wall (inline SVG), filters, scenario bar,
-map (react-leaflet, OpenStreetMap tiles), ranked table, detail drawer with
-the brief, backtest panel. `src/types.ts` mirrors the api's JSON.
+(gitignored; the Docker image builds it in a Node stage). `src/types.ts`
+mirrors the api's JSON.
+
+Pages (React Router, left menu):
+
+| Path | Page |
+|---|---|
+| `/` | Home: class cards (routed teams), maturity wall, map, largest gaps, class changes since last report |
+| `/loans` | Loans grid: search, class pills, "+ Add filter" chips (refi date, gap $ and %, DSCR, debt yield, amount, occupancy, type, metro, flags, changed), server-side sort and paging, column chooser, Share, Export CSV |
+| `/loans/:trust/:asset` | One loan: sizing, brief, reasons, history chart, collateral, other notes; Watch, Share |
+| `/watchlist` | Starred loans with what changed; Share watchlist, Export CSV. `?ids=` opens a shared list with "Add to my watchlist" |
+| `/scenarios` | Rate shift, class-flow Sankey, the loans that move. Shift and filters in the URL |
+| `/backtest` | Backtest charts: trouble rate by class, gap and refi year; AUC by metric |
+| `/data` | Method, sizing assumptions by type, flags, data limits |
+
+- **The URL is the state.** The Loans page's query string is the api's filter
+  query (plus `page`, `size`), so Share copies the address bar and a link
+  reproduces the view. Ranges are shown in $M and % and stored in the api's
+  units (dollars, fractions): `query.ts`.
+- **Watchlist** is per browser (localStorage, synced across tabs). Sharing
+  sends the loan ids in the link; there are no accounts yet. Loans that leave
+  the data (paid off, defeased) are listed separately.
+- **Charts** use Apache ECharts (`charts/Chart.tsx` registers only the chart
+  types used); options are pure functions in `charts/options.ts`, tested
+  without a canvas. The map stays on Leaflet (real basemap). Chart and map
+  pages are lazy-loaded, so the first download skips ECharts.
+- The api serves `index.html` for unknown page paths, so deep links work.
 - Briefs render Markdown as React elements: model output is text, never
   HTML (tested with script/img injection).
 - `index.html` is served `no-cache` and the hashed assets `immutable`, so a
@@ -18,7 +41,7 @@ the brief, backtest panel. `src/types.ts` mirrors the api's JSON.
 ```bash
 cd frontend && npm install
 npm run dev        # http://localhost:5173, proxies /api to cmbs-api on :8080
-npm test           # vitest: formatting, Markdown safety, App flows with a mocked api
+npm test           # vitest: formatting, query model, chart data, Markdown safety, page flows with a mocked api
 npm run build      # into src/cmbs_radar/api/web
 ```
 

@@ -12,6 +12,7 @@ export interface Meta {
   metros: Metro[];
   teams: Partial<Record<LoanClass, string>>;
   limits: string;
+  flags: string[]; // risk flags present in this run
 }
 
 export interface ClassTotal { loans: number; whole_balance: number; refi_gap_whole: number; team?: string }
@@ -53,7 +54,7 @@ export interface Opportunity {
   changes?: string[];
 }
 
-export interface OpportunityList { total: number; run_id: number; opportunities: Opportunity[] }
+export interface OpportunityList { total: number; offset: number; run_id: number; opportunities: Opportunity[] }
 
 export interface MapPoint {
   key: string;
@@ -134,6 +135,8 @@ export interface Scenario {
   rate_shift_bps: number;
   assumptions_version: string;
   base_rate: number;
+  base: Partial<Record<LoanClass, ClassTotal>>; // the selected loans by class, before and after the shift
+  scenario: Partial<Record<LoanClass, ClassTotal>>;
   transitions: Transition[];
   moved_total: number;
   moved: Moved[];
@@ -158,13 +161,4 @@ export interface Backtest {
     auc: Record<string, number>;
     auc_performing: Record<string, number>;
   };
-}
-
-export interface Filters {
-  metro: string;
-  type: string;
-  months: string; // "" = any; else refi within N months
-  q: string;
-  sort: "gap" | "gap_pct" | "maturity" | "balance";
-  classes: LoanClass[];
 }

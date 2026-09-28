@@ -1,13 +1,8 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
-import { LABEL, money } from "../format";
+import { COLOR, LABEL, money } from "../format";
 import type { LoanClass, MapPoint, Metro } from "../types";
-
-// Leaflet can't read CSS variables: the class palette, mirrored from styles.css.
-const COLOR: Record<string, string> = {
-  distressed: "#c0392b", gap_refi: "#d68910", clean_refi: "#1e8449", watch: "#2e6fb7", none: "#9aa4b1",
-};
 
 function View({ metro }: { metro?: Metro }) {
   const map = useMap();

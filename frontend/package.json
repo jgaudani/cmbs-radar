@@ -10,10 +10,13 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
+    "echarts": "^6.1.0",
     "leaflet": "^1.9.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "react-router": "^7.18.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",

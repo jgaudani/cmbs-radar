@@ -28,7 +28,7 @@ ANTHROPIC_API_KEY=... uv run cmbs-api                                           
 - **api**: filters, maturity wall, map, loan detail, rate scenarios
   (re-scores the market in memory), Claude-written briefs grounded in the
   computed numbers.
-- **frontend**: React + TypeScript UI (Vite) served by the api.
+- **frontend**: React + TypeScript UI (Vite) served by the api: home dashboard, filterable loans grid with watchlist and shareable links, loan pages, rate scenarios, backtest (Apache ECharts).
 
 Docs: `docs/data.md`, `docs/scoring.md`, `docs/backtest.md`, `docs/api.md`.
 Limits: SEC-registered CMBS only; borrower names are not disclosed.

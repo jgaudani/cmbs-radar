@@ -5,7 +5,8 @@ import { defineConfig } from "vitest/config";
 // `npm run dev` proxies /api to a running `uv run cmbs-api`.
 export default defineConfig({
   plugins: [react()],
-  build: { outDir: "../src/cmbs_radar/api/web", emptyOutDir: true },
+  // ECharts is one ~590 kB chunk, loaded only by pages with charts.
+  build: { outDir: "../src/cmbs_radar/api/web", emptyOutDir: true, chunkSizeWarningLimit: 700 },
   server: { proxy: { "/api": "http://127.0.0.1:8080" } },
   test: { environment: "jsdom", globals: true, setupFiles: ["./src/setupTests.ts"] },
 });
