@@ -382,6 +382,20 @@ class Service:
         with self._scen_lock:
             self._scen.clear()  # scenarios are per run
         log.info("loaded scoring run run_id=%d notes=%d assumptions=%s", snap.run_id, len(snap.rows), snap.assumptions.version)
+        self._warm()
+
+    # Scenarios the demo uses, precomputed so the first click is instant
+    # (each re-scores the whole market: ~10s).
+    WARM_SCENARIOS = (0.0, -50.0)
+
+    def _warm(self) -> None:
+        def run() -> None:
+            for bps in self.WARM_SCENARIOS:
+                try:
+                    self.scored(bps)
+                except Exception:
+                    log.exception("warming scenario rate_shift_bps=%s", bps)
+        threading.Thread(target=run, daemon=True, name="scenario-warmup").start()
 
     def watch(self, every: float = 60.0) -> None:
         """Refresh in a background thread so new runs show up without a restart."""
