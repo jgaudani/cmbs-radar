@@ -1,8 +1,26 @@
 # api
 
-FastAPI app over `public.*` and `scoring.*`, with the demo UI (`api/web/`:
-plain HTML/CSS/JS, Leaflet from cdnjs, OpenStreetMap tiles, inline SVG
-charts). Owns `api.*` (brief cache).
+FastAPI app over `public.*` and `scoring.*`. Owns `api.*` (brief cache).
+Serves the React UI built from `frontend/`.
+
+## UI (`frontend/`)
+React 19 + TypeScript, built with Vite into `src/cmbs_radar/api/web/`
+(gitignored; the Docker image builds it in a Node stage). One component per
+section: class cards, maturity wall (inline SVG), filters, scenario bar,
+map (react-leaflet, OpenStreetMap tiles), ranked table, detail drawer with
+the brief, backtest panel. `src/types.ts` mirrors the api's JSON.
+- Briefs render Markdown as React elements: model output is text, never
+  HTML (tested with script/img injection).
+- `index.html` is served `no-cache` and the hashed assets `immutable`, so a
+  deploy is picked up at once.
+- If the UI isn't built, `/` explains how to build it; the API still works.
+
+```bash
+cd frontend && npm install
+npm run dev        # http://localhost:5173, proxies /api to cmbs-api on :8080
+npm test           # vitest: formatting, Markdown safety, App flows with a mocked api
+npm run build      # into src/cmbs_radar/api/web
+```
 
 ## Design (keep these)
 - Reads, never writes, other packages' tables; checks `public.schema_meta`
@@ -13,8 +31,10 @@ charts). Owns `api.*` (brief cache).
 - Lists show `group_primary` rows only: one row per whole loan.
 - **Scenarios** re-score the whole universe in memory (`scoring.universe`)
   with the run's own assumptions (bps 0) and shifted, cached per (run,
-  bps), ~10s each the first time. Both sides use the same data, so
-  differences are the rate move alone. Class filters refer to the base.
+  bps), ~12s each. The base case and -50bp are precomputed in the
+  background whenever a scoring run loads, so the demo click is instant.
+  Both sides use the same data, so differences are the rate move alone.
+  Class filters refer to the base.
 - Office loans are mostly sized by the debt-yield test, which ignores
   rates: NYC office moves 0 loans at -50bp. The UI says so
   (`binding_constraint`).

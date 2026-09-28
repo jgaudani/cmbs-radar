@@ -27,6 +27,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cmbs_radar"]
+# The UI is built into the package by `npm run build` (gitignored).
+artifacts = ["src/cmbs_radar/api/web/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

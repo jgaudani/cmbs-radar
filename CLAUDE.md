@@ -33,7 +33,8 @@ integration point; each service writes only its own tables.
 |---|---|---|---|
 | `src/cmbs_radar/ingest/` | `cmbs-ingest` | `public.*` (schema v4) | EDGAR -> filings, loans, properties, monthly observations. Scheduled. |
 | `src/cmbs_radar/scoring/` | `cmbs-score`, `cmbs-backtest` | `scoring.*` (schema v3) | Refi gap, flags, class, changes, whole-loan grouping, backtest. Scheduled after ingest. |
-| `src/cmbs_radar/api/` | `cmbs-api` | `api.*` (schema v1) | HTTP API, rate scenarios, Claude briefs, demo UI (`web/`). |
+| `src/cmbs_radar/api/` | `cmbs-api` | `api.*` (schema v1) | HTTP API, rate scenarios, Claude briefs; serves the UI. |
+| `frontend/` | `npm run build` | | React + TypeScript UI (Vite), built into `src/cmbs_radar/api/web/`. |
 
 ```
 EDGAR -> ingest -> Postgres public.* -> scoring -> scoring.* -> api -> browser
@@ -57,6 +58,8 @@ Rules:
 ## Conventions
 - Python >= 3.12, uv, few dependencies (psycopg, lxml, httpx, FastAPI,
   anthropic). Type hints and dataclasses; stdlib first.
+- Frontend: React + TypeScript (strict), Vite, Vitest. `src/types.ts`
+  mirrors the api's JSON; keep them in step.
 - Tests for every data quirk and business rule (`tests/`, pytest).
   Postgres integration tests run when `TEST_DATABASE_URL` is set and must
   use their own database (`radar_test`): they drop tables.
@@ -78,7 +81,8 @@ uv sync
 export DATABASE_URL='postgres://radar:radar@localhost:5432/radar?sslmode=disable'
 export EDGAR_USER_AGENT='Your Name you@example.com'     # ingest only
 export ANTHROPIC_API_KEY=...                             # api briefs only
-uv run pytest -q
+(cd frontend && npm install && npm run build)          # UI into the api package
+uv run pytest -q && (cd frontend && npm test)
 TEST_DATABASE_URL='postgres://radar:radar@localhost:5432/radar_test?sslmode=disable' uv run pytest -q
 uv run cmbs-ingest --from 2021Q3 --to 2026Q3 --raw-dir data/raw
 uv run cmbs-score && uv run cmbs-backtest && uv run cmbs-api

@@ -7,3 +7,5 @@ __pycache__/
 data/
 *.xml.gz
 .claude/
+# built by `npm run build` in frontend/
+src/cmbs_radar/api/web/

@@ -8,13 +8,26 @@ from datetime import datetime, timezone
 from importlib import resources
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .brief import PROMPT_VERSION, Generator, MissingCredentialsError, RefusedError
 from .service import BadParam, Filter, NotFound, Service, map_points, opportunity, summarize
 
 log = logging.getLogger("api")
+
+
+class _UIFiles(StaticFiles):
+    """index.html must be revalidated so a deploy is picked up at once; the
+    hashed assets it references are immutable and cache forever."""
+
+    async def get_response(self, path: str, scope):
+        resp = await super().get_response(path, scope)
+        if path.startswith("assets/"):
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
 
 def create_app(svc: Service, briefer: Generator | None) -> FastAPI:
@@ -103,6 +116,13 @@ def create_app(svc: Service, briefer: Generator | None) -> FastAPI:
     def backtest():
         return svc.backtest()
 
+    # The React UI (frontend/) is built into web/; serve it when present.
     web = resources.files("cmbs_radar.api").joinpath("web")
-    app.mount("/", StaticFiles(directory=str(web), html=True), name="web")
+    if web.joinpath("index.html").is_file():
+        app.mount("/", _UIFiles(directory=str(web), html=True), name="web")
+    else:
+        @app.get("/", response_class=HTMLResponse)
+        def ui_not_built():
+            return ("<p>The UI isn't built. Run <code>cd frontend && npm install && npm run build</code>, "
+                    "then restart the api. The API itself is up: see <a href='/api/docs'>/api/docs</a>.</p>")
     return app
