@@ -1,0 +1,33 @@
+{
+  "version": "v1",
+  "description": "Demo defaults: conduit-style sizing by property type. Base rate approximates the 10-year Treasury; set it from the market before a demo.",
+  "base_rate": 0.0425,
+  "default":          { "debt_yield": 0.100, "dscr": 1.35, "spread": 0.0225, "amort_years": 30 },
+  "by_property_type": {
+    "MF": { "debt_yield": 0.080, "dscr": 1.25, "spread": 0.0150, "amort_years": 30 },
+    "MH": { "debt_yield": 0.085, "dscr": 1.25, "spread": 0.0175, "amort_years": 30 },
+    "CH": { "debt_yield": 0.080, "dscr": 1.25, "spread": 0.0150, "amort_years": 30 },
+    "IN": { "debt_yield": 0.090, "dscr": 1.25, "spread": 0.0175, "amort_years": 30 },
+    "WH": { "debt_yield": 0.090, "dscr": 1.25, "spread": 0.0175, "amort_years": 30 },
+    "SS": { "debt_yield": 0.090, "dscr": 1.30, "spread": 0.0200, "amort_years": 30 },
+    "RT": { "debt_yield": 0.100, "dscr": 1.35, "spread": 0.0225, "amort_years": 30 },
+    "MU": { "debt_yield": 0.100, "dscr": 1.35, "spread": 0.0225, "amort_years": 30 },
+    "OF": { "debt_yield": 0.110, "dscr": 1.40, "spread": 0.0275, "amort_years": 30 },
+    "LO": { "debt_yield": 0.120, "dscr": 1.50, "spread": 0.0300, "amort_years": 25 },
+    "HC": { "debt_yield": 0.120, "dscr": 1.50, "spread": 0.0300, "amort_years": 25 }
+  },
+  "horizon_months": 24,
+  "gap_tolerance": 0.02,
+  "distress_gap": 0.25,
+  "t12_max_age_months": 15,
+  "stale_financials_months": 18,
+  "watch": {
+    "dscr_floor": 1.25,
+    "dscr_decline": 0.20,
+    "occupancy_decline": 0.10,
+    "valuation_decline": 0.20,
+    "paid_through_lag_days": 60,
+    "tenant_share": 0.15,
+    "tenant_window_months": 12
+  }
+}
