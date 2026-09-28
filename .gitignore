@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+# downloaded EDGAR data (re-derivable, ~500 MB)
+data/
+*.xml.gz
+.claude/

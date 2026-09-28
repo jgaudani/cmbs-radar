@@ -1,0 +1,32 @@
+[project]
+name = "cmbs-radar"
+version = "0.1.0"
+description = "CMBS Radar: SEC CMBS loan data -> refinance-gap scoring, backtest, API and demo UI"
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg[binary,pool]>=3.2",
+    "lxml>=5.3",
+    "httpx>=0.28",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "anthropic>=0.60",
+]
+
+[project.scripts]
+cmbs-ingest = "cmbs_radar.ingest.cli:main"
+cmbs-score = "cmbs_radar.scoring.cli:main"
+cmbs-backtest = "cmbs_radar.scoring.backtest_cli:main"
+cmbs-api = "cmbs_radar.api.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cmbs_radar"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

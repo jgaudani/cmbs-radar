@@ -1,0 +1,16 @@
+# Local Postgres shared by all services.
+#   docker compose up -d
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar
+      POSTGRES_DB: radar
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/initdb:/docker-entrypoint-initdb.d:ro   # creates radar_test for integration tests
+volumes:
+  pgdata:
+    name: ingest_pgdata   # the existing volume (created when compose lived in ingest/)
