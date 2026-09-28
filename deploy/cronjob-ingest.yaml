@@ -1,0 +1,32 @@
+# Daily ingest. EDGAR rebuilds the current quarter's index nightly and the
+# job is idempotent: a daily run picks up new filings and retries failures.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cmbs-ingest
+spec:
+  schedule: "30 7 * * *"          # after EDGAR's nightly index rebuild (UTC)
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1              # the job retries per filing itself
+      activeDeadlineSeconds: 14400
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext: { runAsNonRoot: true }
+          containers:
+            - name: ingest
+              image: ghcr.io/jay/cmbs-radar:latest
+              command: ["cmbs-ingest", "--rps", "3", "--workers", "4"]
+              env:
+                - name: EDGAR_USER_AGENT
+                  valueFrom: { configMapKeyRef: { name: cmbs-radar, key: edgar-user-agent } }
+                - name: DATABASE_URL
+                  valueFrom: { secretKeyRef: { name: cmbs-radar-db, key: url } }
+              resources:
+                requests: { cpu: 100m, memory: 256Mi }
+                limits:   { memory: 1Gi }

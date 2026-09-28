@@ -1,0 +1,31 @@
+# Daily scoring after ingest. Each run is an atomic snapshot; re-running is
+# safe. Mount a file and set SCORING_ASSUMPTIONS to change assumptions
+# without a new image.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cmbs-scoring
+spec:
+  schedule: "30 11 * * *"          # 4h after ingest starts; ingest's deadline is 4h
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext: { runAsNonRoot: true }
+          containers:
+            - name: scoring
+              image: ghcr.io/jay/cmbs-radar:latest
+              command: ["cmbs-score", "--keep-runs", "30"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom: { secretKeyRef: { name: cmbs-radar-db, key: url } }
+              resources:
+                requests: { cpu: 250m, memory: 512Mi }
+                limits:   { memory: 2Gi }
