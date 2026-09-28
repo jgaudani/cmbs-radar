@@ -7,32 +7,6 @@ EDGAR. CMBS Radar ingests it monthly, estimates each loan's refinance gap
 with plain-language reasons, routes each opportunity to the team that can act
 on it, and backtests the score against what actually happened.
 
-```bash
-docker compose up -d && uv sync
-export DATABASE_URL='postgres://radar:radar@localhost:5432/radar?sslmode=disable'
-uv run cmbs-ingest --ua "Your Name you@example.com" --from 2025Q4 --raw-dir data/raw   # EDGAR -> Postgres
-uv run cmbs-score                                                                      # scoring.*
-uv run cmbs-backtest                                                                   # scoring.backtest_*
-(cd frontend && npm install && npm run build)                                          # React UI
-ANTHROPIC_API_KEY=... uv run cmbs-api                                                  # http://localhost:8080
-```
-
-- **ingest**: header-first EDGAR discovery (SEC fair-access limits, shared
-  throttling pause), streaming EX-102 parser, newest-filing-wins upserts.
-- **scoring**: whole-loan sizing for loans split across trusts, annualized
-  financials, max new loan = lower of debt-yield and DSCR sizing, flags,
-  classes, month-over-month changes.
-- **backtest**: each loan scored 12-24 months before its refi date with that
-  quarter's rates and only the data reported by then; outcomes from
-  liquidation codes, special servicing, extensions.
-- **api**: filters, maturity wall, map, loan detail, rate scenarios
-  (re-scores the market in memory), Claude-written briefs grounded in the
-  computed numbers.
-- **frontend**: React + TypeScript UI (Vite) served by the api: home dashboard, filterable loans grid with watchlist and shareable links, loan pages, rate scenarios, backtest (Apache ECharts).
-
-Docs: `docs/data.md`, `docs/scoring.md`, `docs/backtest.md`, `docs/api.md`.
-Limits: SEC-registered CMBS only; borrower names are not disclosed.
-
 ## Research and context
 
 Why this problem, and why it matters to Newmark. Figures are as stated in
@@ -87,3 +61,69 @@ each source (checked 2026-09-28).
   (fair-access rules) and [Regulation AB, Schedule AL](https://www.ecfr.gov/current/title-17/chapter-II/part-229/subpart-229.1100/section-229.1125)
   (EX-102 field definitions). Example filing: [GS Mortgage Securities Trust
   2018-GS9](https://www.sec.gov/Archives/edgar/data/1731056/000188852426016948/0001888524-26-016948-index.htm).
+
+
+## Product Modules
+
+- **ingest**: ingest service will pull data from SEC EDGAR from available ABS-EE
+    filings, format the data and store it in our persistence layer, PostgreSQL.
+  - header-first EDGAR discovery (SEC fair-access limits, shared
+  throttling pause), streaming EX-102 parser, newest-filing-wins upserts.
+- **scoring**: scoring service will score each loan based on available data and 
+    different metrics and financials pulled during ingest stage.
+  - whole-loan sizing for loans split across trusts, annualized
+  financials, max new loan = lower of debt-yield and DSCR sizing, flags,
+  classes, month-over-month changes.
+- **backtest**: backtest replays the scoring on loans that have already
+    matured, as they looked about 18 months earlier, and checks whether the
+    predicted class matched what actually happened. It is the evidence that
+    the score is worth acting on.
+  - each loan scored 12-24 months before its refi date with that
+  quarter's rates and only the data reported by then; outcomes from
+  liquidation codes, special servicing, extensions; trouble rate by class
+  and AUC against DSCR and debt yield.
+- **api**: api service serves the scored loans to the UI, lets users filter
+    and search them, re-runs scoring for rate what-ifs, and asks Claude to
+    write a short brief for a loan from the numbers scoring computed.
+  - filters (ranges, dates, ids), sorting and paging, CSV export, maturity
+  wall, map, loan detail, rate scenarios (re-scores the market in memory,
+  common ones precomputed), Claude-written briefs grounded in the computed
+  numbers and cached with the facts sent.
+- **frontend**: frontend is the web app brokers use: a dashboard of the
+    opportunities, a searchable loan list, a page per loan, a personal
+    watchlist, rate scenarios and the backtest results.
+  - React + TypeScript (Vite), served by the api; left-menu pages, filterable
+  loans grid (TanStack Table) with watchlist and shareable links (page state
+  in the URL), charts in Apache ECharts, map in Leaflet.
+
+## Setup
+
+```bash
+docker compose up -d && uv sync
+```
+```bash
+export DATABASE_URL='postgres://radar:radar@localhost:5432/radar?sslmode=disable'
+```
+```bash
+uv run cmbs-ingest --ua "Your Name you@example.com" --from 2025Q4 --raw-dir data/raw   # EDGAR -> Postgres
+```
+```bash
+uv run cmbs-score # scoring.*
+```    
+```bash                                                                
+uv run cmbs-backtest # scoring.backtest_*
+```
+```bash
+(cd frontend && npm install && npm run build) # React UI
+```
+```bash
+export ANTHROPIC_API_KEY=...   # only needed for Claude briefs
+```
+```bash
+uv run cmbs-api # http://localhost:8080
+```
+
+## Notes
+
+Docs: `docs/data.md`, `docs/scoring.md`, `docs/backtest.md`, `docs/api.md`.
+Limits: SEC-registered CMBS only; borrower names are not disclosed.
