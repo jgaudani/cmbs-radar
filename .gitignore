@@ -9,3 +9,4 @@ data/
 .claude/
 # built by `npm run build` in frontend/
 src/cmbs_radar/api/web/
+.env

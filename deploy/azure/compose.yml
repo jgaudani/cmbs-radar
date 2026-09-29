@@ -1,0 +1,55 @@
+# CMBS Radar on one Azure VM: Postgres, the app and Caddy (HTTPS + password).
+# Only Caddy is reachable from outside; Postgres and the app have no host ports.
+#   docker compose up -d --build        (from deploy/azure/, with .env filled in)
+# Runbook: deploy/azure/README.md
+
+name: cmbs-radar
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: radar
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "radar", "-d", "radar"]
+      interval: 5s
+      retries: 20
+
+  app:
+    build:
+      context: ../..            # the repo root, where the Dockerfile is
+    image: cmbs-radar:latest
+    restart: unless-stopped
+    # API_FLAGS=--no-briefs in .env turns Claude briefs off.
+    command: cmbs-api --addr :8080 ${API_FLAGS:-}
+    environment:
+      DATABASE_URL: postgres://radar:${POSTGRES_PASSWORD}@postgres:5432/radar?sslmode=disable
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"]
+      interval: 15s
+      start_period: 90s        # loads the latest scoring run before listening
+      retries: 3
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    env_file: .env             # SITE_ADDRESS, BASIC_AUTH_USER, BASIC_AUTH_HASH
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # certificates survive restarts
+      - caddy_config:/config
+    depends_on: [app]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

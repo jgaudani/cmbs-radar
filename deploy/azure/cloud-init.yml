@@ -1,0 +1,10 @@
+#cloud-config
+# First boot of the Ubuntu 24.04 VM: Docker with the compose plugin, and git.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+runcmd:
+  - systemctl enable --now docker
+  - usermod -aG docker azureuser

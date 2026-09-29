@@ -1,0 +1,12 @@
+# HTTPS certificate from Let's Encrypt for SITE_ADDRESS (a domain, or
+# <public-ip>.sslip.io), one shared login in front of the whole site, and
+# the app behind it.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
+	reverse_proxy app:8080
+}
