@@ -163,8 +163,13 @@ export DATABASE_URL='postgres://radar:radar@localhost:5432/radar?sslmode=disable
 
 The snapshot holds everything the demo shows: EDGAR data from 2021-05 to
 2026-09 (833,516 monthly loan observations), scoring run 6 and the backtest.
-Download `cmbs-radar.dump` (84 MB) from the repository's Releases page into
-`data/`, then:
+Download [`cmbs-radar.dump`](https://github.com/jgaudani/cmbs-radar/releases/download/v0.0.1/cmbs-radar.dump)
+(84 MB, from [release v0.0.1](https://github.com/jgaudani/cmbs-radar/releases/tag/v0.0.1))
+into `data/`. On Windows PowerShell, type `curl.exe` instead of `curl`:
+```bash
+curl -L --create-dirs -o data/cmbs-radar.dump https://github.com/jgaudani/cmbs-radar/releases/download/v0.0.1/cmbs-radar.dump
+```
+Then restore it:
 ```bash
 docker compose cp data/cmbs-radar.dump postgres:/tmp/cmbs-radar.dump
 ```
