@@ -35,7 +35,12 @@ export function Layout() {
   const { meta, error } = useMeta();
   const { items } = useWatchlist();
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]); // a new page starts at the top; filter changes keep the scroll
+  // A new page starts at the top; filter changes keep the scroll. The braces
+  // matter: an effect must return nothing or a cleanup function, and
+  // scrollTo can return a value when an extension replaces it.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return (
     <div className="shell">
       <nav className="side" aria-label="Main">

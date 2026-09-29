@@ -17,9 +17,9 @@ export function ClassCards({ summary, teams, onPick }: Props) {
         return (
           <button key={c} className="kpi" style={{ "--c": `var(--${c})` } as CSSProperties} onClick={() => onPick(c)}>
             <div className="l">{LABEL[c]}</div>
-            <div className="v">{money(t.whole_balance)}</div>
+            <div className="v">{summary ? money(t.whole_balance) : "—"}</div>
             <div className="n">
-              {t.loans.toLocaleString()} loans{t.refi_gap_whole ? ` · gap ${money(t.refi_gap_whole)}` : ""}
+              {summary ? <>{t.loans.toLocaleString()} loans{t.refi_gap_whole ? ` · gap ${money(t.refi_gap_whole)}` : ""}</> : "Loading…"}
             </div>
             <div className="t">{teams[c] ?? ""}</div>
           </button>

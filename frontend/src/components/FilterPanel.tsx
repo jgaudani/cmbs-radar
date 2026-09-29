@@ -18,7 +18,9 @@ export function FilterPanel({ search, meta, onChange, onReset }: Props) {
   const [q, setQ] = useState(search.get("q") ?? "");
 
   // Search goes to the URL as you type (debounced, replacing history).
-  useEffect(() => setQ(search.get("q") ?? ""), [search]);
+  useEffect(() => {
+    setQ(search.get("q") ?? "");
+  }, [search]);
   useEffect(() => {
     if (q === (search.get("q") ?? "")) return;
     const t = setTimeout(() => onChange({ q: q || null }, true), 250);

@@ -159,6 +159,18 @@ test("rate scenario shows class flows and lists the loans of one move", async ()
   expect(screen.getByText("9 WEST 57TH")).toBeInTheDocument();
 });
 
+test("switching pages works when window.scrollTo returns a value (browser extensions replace it)", async () => {
+  const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation((() => ({ patched: true })) as never);
+  at("/");
+  expect(await screen.findByRole("heading", { name: "Refinance radar" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: /^Loans/ }));
+  expect(await screen.findByRole("heading", { name: "Loans" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: /Rate scenarios/ }));
+  expect(await screen.findByRole("heading", { name: "Rate scenarios" })).toBeInTheDocument();
+  expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  scrollTo.mockRestore();
+});
+
 test("unknown pages say so", async () => {
   at("/nope");
   expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
