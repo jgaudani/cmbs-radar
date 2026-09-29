@@ -96,7 +96,61 @@ each source (checked 2026-09-28).
   loans grid (TanStack Table) with watchlist and shareable links (page state
   in the URL), charts in Apache ECharts, map in Leaflet.
 
+## Prerequisites
+
+| Tool | Version | Why |
+|---|---|---|
+| Git | any recent | clone the repo |
+| Docker Desktop (or Rancher Desktop / Podman) | any recent | runs Postgres 16 via `docker compose` |
+| [uv](https://docs.astral.sh/uv/) | 0.12+ | installs Python 3.12+ and the locked dependencies; no separate Python install needed |
+| Node.js | 22.12+ | builds the React UI |
+| Anthropic API key | optional | only for Claude-written briefs |
+
+Ports 5432 (Postgres) and 8080 (the app) must be free. If you already run a
+local Postgres, change the mapping in `docker-compose.yml` to `"5433:5432"`
+and use port 5433 in `DATABASE_URL`.
+
+**macOS** (with [Homebrew](https://brew.sh)):
+```bash
+brew install git uv node
+```
+```bash
+brew install --cask docker
+```
+Open Docker Desktop once so its engine starts.
+
+**Windows 10/11** (PowerShell): enable WSL 2 in an admin PowerShell and
+reboot, which Docker Desktop requires:
+```powershell
+wsl --install
+```
+Then install the tools and open a new PowerShell window so they are on PATH:
+```powershell
+winget install --id Git.Git -e
+```
+```powershell
+winget install --id Docker.DockerDesktop -e
+```
+```powershell
+winget install --id astral-sh.uv -e
+```
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e
+```
+Start Docker Desktop once. It needs virtualization enabled in BIOS/UEFI.
+Docker Desktop is free for personal use; larger companies need a license
+(Rancher Desktop and Podman are free alternatives).
+
+Check everything is installed (in PowerShell, separate them with `;`):
+```bash
+git --version && docker --version && uv --version && node --version
+```
+
 ## Setup
+
+Commands below are for macOS/Linux shells. On Windows PowerShell, set
+variables with `$env:NAME = "value"` instead of `export NAME='value'`, and
+build the UI with `cd frontend; npm install; npm run build; cd ..`.
 
 ```bash
 docker compose up -d && uv sync
@@ -104,15 +158,38 @@ docker compose up -d && uv sync
 ```bash
 export DATABASE_URL='postgres://radar:radar@localhost:5432/radar?sslmode=disable'
 ```
+
+### Option A: restore the database snapshot (about a minute)
+
+The snapshot holds everything the demo shows: EDGAR data from 2021-05 to
+2026-09 (833,516 monthly loan observations), scoring run 6 and the backtest.
+Download `cmbs-radar.dump` (84 MB) from the repository's Releases page into
+`data/`, then:
+```bash
+docker compose cp data/cmbs-radar.dump postgres:/tmp/cmbs-radar.dump
+```
+```bash
+docker compose exec -T postgres pg_restore -U radar -d radar --no-owner --no-privileges --clean --if-exists /tmp/cmbs-radar.dump
+```
+Then build the UI and start the app (the last three steps of option B).
+
+### Option B: build from EDGAR (hours for the full history)
+
 ```bash
 uv run cmbs-ingest --ua "Your Name you@example.com" --from 2025Q4 --raw-dir data/raw   # EDGAR -> Postgres
 ```
 ```bash
 uv run cmbs-score # scoring.*
-```    
-```bash                                                                
+```
+```bash
 uv run cmbs-backtest # scoring.backtest_*
 ```
+The SEC requires a real name and email in `--ua`. One or two quarters are
+enough to try the app; the backtest needs several years of history
+(`--from 2021Q3`) to have outcomes to compare against.
+
+### Build the UI and start the app
+
 ```bash
 (cd frontend && npm install && npm run build) # React UI
 ```
@@ -121,6 +198,15 @@ export ANTHROPIC_API_KEY=...   # only needed for Claude briefs
 ```
 ```bash
 uv run cmbs-api # http://localhost:8080
+```
+
+To make a new snapshot after re-running ingest or scoring (written inside
+the container, then copied out, so it works the same in PowerShell):
+```bash
+docker compose exec -T postgres pg_dump -U radar -d radar -Fc -Z 9 --no-owner --no-privileges -n public -n scoring -n api -f /tmp/cmbs-radar.dump
+```
+```bash
+docker compose cp postgres:/tmp/cmbs-radar.dump data/cmbs-radar.dump
 ```
 
 ## Notes
